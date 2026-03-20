@@ -16,10 +16,10 @@ const Login = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    
+
     try {
       const decodedToken = await loginUser(identifier, password);
-      
+
       // Navigate based on selected role tab (or we could use decodedToken.role if present)
       if (role === 'student') {
         navigate('/student');
@@ -48,17 +48,17 @@ const Login = () => {
         </div>
 
         <div style={{ display: 'flex', gap: '12px', marginBottom: '32px' }}>
-          <button 
+          <button
             type="button"
-            className={role === 'student' ? 'btn-primary' : 'btn-secondary'} 
+            className={role === 'student' ? 'btn-primary' : 'btn-secondary'}
             style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
             onClick={() => setRole('student')}
           >
             <User size={18} /> Student
           </button>
-          <button 
+          <button
             type="button"
-            className={role === 'lecturer' ? 'btn-primary' : 'btn-secondary'} 
+            className={role === 'lecturer' ? 'btn-primary' : 'btn-secondary'}
             style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
             onClick={() => setRole('lecturer')}
           >
@@ -71,29 +71,29 @@ const Login = () => {
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--color-text-muted)' }}>
-              {role === 'student' ? 'Registration Number' : 'Staff ID / Email'}
+              {role === 'student' ? 'Username' : 'Username'}
             </label>
-            <input 
-              type="text" 
-              className="input-premium" 
-              placeholder={role === 'student' ? 'e.g. CT201/111963/23' : 'Enter email'} 
+            <input
+              type="text"
+              className="input-premium"
+              placeholder={role === 'student' ? 'Enter username' : 'Enter username'}
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              required 
+              required
             />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--color-text-muted)' }}>Password</label>
-            <input 
-              type="password" 
-              className="input-premium" 
-              placeholder="••••••••" 
+            <input
+              type="password"
+              className="input-premium"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required 
+              required
             />
           </div>
-          
+
           <button type="submit" disabled={loading} className="btn-primary" style={{ marginTop: '12px', padding: '14px', opacity: loading ? 0.7 : 1 }}>
             {loading ? 'Signing In...' : `Sign In as ${role.charAt(0).toUpperCase() + role.slice(1)}`}
           </button>
