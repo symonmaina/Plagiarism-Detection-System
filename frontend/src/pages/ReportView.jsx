@@ -31,6 +31,35 @@ const ReportView = () => {
   const doc = reportData.document;
   const overallSimilarity = reportData.overall_score || 0;
   
+  const renderHighlightedText = (text, matches) => {
+    if (!text) return <p>No text available for analysis.</p>;
+    
+    let matchedSegments = [];
+    matches.forEach(match => {
+      if (match.matched_blocks) {
+        match.matched_blocks.forEach(block => {
+          matchedSegments.push({ text: block.matched_text, docSim: match.similarity });
+        });
+      }
+    });
+
+    let highlightedHtml = text;
+    // Sort longer matches first to avoid nested replacement bugs
+    matchedSegments.sort((a, b) => b.text.length - a.text.length);
+    
+    matchedSegments.forEach(seg => {
+      const style = seg.docSim > 30 
+        ? 'background-color: rgba(239, 68, 68, 0.25); color: #fca5a5; padding: 2px; border-radius: 3px;' 
+        : 'background-color: rgba(252, 211, 77, 0.25); color: #fcd34d; padding: 2px; border-radius: 3px;';
+        
+      const escapedText = seg.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(${escapedText})`, 'gi');
+      highlightedHtml = highlightedHtml.replace(regex, `<span style="${style}">$1</span>`);
+    });
+
+    return <div dangerouslySetInnerHTML={{ __html: highlightedHtml.replace(/\n/g, '<br/>') }} />;
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--color-bg)' }}>
       
@@ -42,7 +71,7 @@ const ReportView = () => {
           </button>
           <div>
             <h1 style={{ fontSize: '20px', margin: 0 }}>Similarity Report</h1>
-            <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-muted)' }}>{doc?.title} • {doc?.uploaded_by?.username} ({doc?.uploaded_by?.id_number})</p>
+            <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-muted)' }}>{doc?.title} • {doc?.uploaded_by?.username}</p>
           </div>
         </div>
         
@@ -63,14 +92,7 @@ const ReportView = () => {
           </h2>
           
           <div className="glass-card" style={{ padding: '32px', fontSize: '15px', lineHeight: '1.8', color: '#cbd5e1' }}>
-            <p>
-              [Submitted Text Preview - In a full implementation, the raw highlighted text block would be rendered here]
-            </p>
-            <p>
-              <span style={{ backgroundColor: 'rgba(239, 68, 68, 0.25)', color: '#fca5a5', padding: '2px 4px', borderRadius: '4px' }}>
-                Note: The current backend NLP engine analyzes the overall document TF-IDF cosine similarity. Block-level highlighting requires sentence-by-sentence vector tokenization map generation.
-              </span>
-            </p>
+            {renderHighlightedText(reportData.submission_text, reportData.matches || [])}
           </div>
         </div>
 
@@ -89,8 +111,15 @@ const ReportView = () => {
                 <span style={{ fontSize: '28px', fontWeight: 'bold', color: 'var(--color-danger)' }}>{overallSimilarity}%</span>
               </div>
             </div>
-            <h3 style={{ margin: '0 0 8px' }}>High Similarity Detected</h3>
-            <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-muted)' }}>This document contains significant matches with external or internal sources.</p>
+            {reportData.grade && (
+              <div style={{ marginBottom: '16px', fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                Grade: <span style={{ color: reportData.grade === 'A' ? 'var(--color-success)' : reportData.grade === 'D' ? 'var(--color-danger)' : 'var(--color-warning)' }}>{reportData.grade}</span>
+              </div>
+            )}
+            <h3 style={{ margin: '0 0 8px' }}>Analysis Overview</h3>
+            <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-muted)' }}>
+              {overallSimilarity < 15 ? "This document appears highly original with minimal text overlap." : "The engine has detected structural overlap with other documents. Please review the highlighted segments."}
+            </p>
           </div>
 
           {/* Matched Sources */}
@@ -103,7 +132,7 @@ const ReportView = () => {
               reportData.matches.map((match, idx) => (
                 <div key={idx} className="glass-panel" style={{ padding: '16px', borderLeft: `3px solid ${match.similarity > 30 ? 'var(--color-danger)' : 'var(--color-warning)'}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ fontWeight: '600', fontSize: '14px', color: match.similarity > 30 ? '#fca5a5' : '#fcd34d' }}>Document ID: {match.source_doc_id}</span>
+                    <span style={{ fontWeight: '600', fontSize: '14px', color: match.similarity > 30 ? '#fca5a5' : '#fcd34d' }}>{match.source_doc_title || 'Unknown Document'} (ID: {match.source_doc_id})</span>
                     <span style={{ fontWeight: 'bold', color: match.similarity > 30 ? 'var(--color-danger)' : 'var(--color-warning)' }}>{match.similarity}%</span>
                   </div>
                   <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted)' }}>{match.notes}</p>

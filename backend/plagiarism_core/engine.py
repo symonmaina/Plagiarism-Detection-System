@@ -1,19 +1,83 @@
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-from plagiarism_core.models import Document, SimilarityReport
-from plagiarism_core.nlp_utils import preprocess_text
+from plagiarism_core.models import Submission, SimilarityReport
 from plagiarism_core.text_extraction import extract_text_from_file
+from plagiarism_core.nlp_engine import extract_text, preprocess_text, calculate_similarity
 
-def process_and_analyze_document(document_id: int):
+def process_and_analyze_document(submission_id: int):
     """
-    Placeholder for the actual similarity engine.
-    Marks the document as 'Not Implemented' until the algorithms are built.
+    Core engine to process a submission, extract text, and compare it against existing submissions in the same assignment.
     """
     try:
-        new_doc = Document.objects.get(id=document_id)
-    except Document.DoesNotExist:
+        new_sub = Submission.objects.get(id=submission_id)
+    except Submission.DoesNotExist:
         return None
         
-    new_doc.status = 'not_implemented'
-    new_doc.save()
-    return None
+    try:
+        # 1. Extract text
+        raw_text = extract_text_from_file(new_sub.file)
+        
+        # Tokenize sentences upfront
+        from nltk.tokenize import sent_tokenize
+        new_sentences = sent_tokenize(raw_text)
+        new_sentences = [s for s in new_sentences if len(s.split()) >= 3]
+        
+        # Store raw_text in clean_text
+        new_sub.clean_text = raw_text
+        new_sub.tokenized_sentences = new_sentences
+        new_sub.save(update_fields=['clean_text', 'tokenized_sentences'])
+        
+        # 2. Fetch existing submissions' texts for the same assignment
+        # (Or across all assignments? Plagiarism check usually scopes per assignment or per institution.
+        # It's better to check against all submissions in the system).
+        existing_subs = Submission.objects.exclude(id=submission_id).exclude(status='error')
+        
+        existing_subs_dict = {}
+        for sub in existing_subs:
+            # Reconstruct missing historical data or fetch from cache
+            if not sub.tokenized_sentences and sub.clean_text:
+                sub_sentences = sent_tokenize(sub.clean_text)
+                sub_sentences = [s for s in sub_sentences if len(s.split()) >= 3]
+                sub.tokenized_sentences = sub_sentences
+                sub.save(update_fields=['tokenized_sentences'])
+            elif not sub.clean_text:
+                try:
+                    text_extracted = extract_text_from_file(sub.file)
+                    if text_extracted:
+                        sub_sentences = sent_tokenize(text_extracted)
+                        sub_sentences = [s for s in sub_sentences if len(s.split()) >= 3]
+                        sub.clean_text = text_extracted
+                        sub.tokenized_sentences = sub_sentences
+                        sub.save(update_fields=['clean_text', 'tokenized_sentences'])
+                except Exception as e:
+                    print(f"Failed to extract older sub {sub.id}: {e}")
+            
+            if sub.clean_text:
+                file_name = sub.file.name.split('/')[-1] if sub.file else f"Submission {sub.id}"
+                existing_subs_dict[str(sub.id)] = {
+                    "text": sub.clean_text,
+                    "sentences": sub.tokenized_sentences,
+                    "title": file_name
+                }
+                    
+        # 3. Calculate similarity
+        overall_score, matches = calculate_similarity(raw_text, new_sentences, existing_subs_dict)
+        
+        # 4. Save SimilarityReport
+        report, created = SimilarityReport.objects.update_or_create(
+            submission=new_sub,
+            defaults={
+                'overall_score': overall_score,
+                'matches': matches
+            }
+        )
+        
+        # 5. Update Status
+        new_sub.status = 'scanned'
+        new_sub.save(update_fields=['status'])
+        
+        return report
+        
+    except Exception as e:
+        print(f"Error processing submission {submission_id}: {e}")
+        new_sub.status = 'error'
+        new_sub.save(update_fields=['status'])
+        return None

@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    'django_q',
     'plagiarism_core',
 ]
 
@@ -142,9 +143,26 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+import os
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR
 
 # Custom User Model
 AUTH_USER_MODEL = 'plagiarism_core.User'
 
 # CORS
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Django Q configuration
+Q_CLUSTER = {
+    'name': 'DjangORM',
+    'workers': 4,
+    'recycle': 500,
+    'timeout': 600,
+    'compress': True,
+    'save_limit': 250,
+    'queue_limit': 500,
+    'cpu_affinity': 1,
+    'label': 'Django Q',
+    'orm': 'default'
+}

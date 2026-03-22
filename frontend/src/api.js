@@ -31,7 +31,12 @@ export const loginUser = async (identifier, password) => {
       localStorage.setItem('refresh_token', response.data.refresh);
       
       const decodedToken = jwtDecode(response.data.access);
-      return decodedToken; // Will contain user_id etc.
+      
+      // Fetch full user profile to obtain role and program mapping
+      const userRes = await api.get(`/users/${decodedToken.user_id}/`);
+      localStorage.setItem('user_profile', JSON.stringify(userRes.data));
+      
+      return userRes.data; 
     }
   } catch (error) {
     console.error("Login failed:", error);
@@ -42,14 +47,15 @@ export const loginUser = async (identifier, password) => {
 export const logoutUser = () => {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
+  localStorage.removeItem('user_profile');
   window.location.href = '/';
 };
 
 export const getUserContext = () => {
-    const token = localStorage.getItem('access_token');
-    if (!token) return null;
+    const profile = localStorage.getItem('user_profile');
+    if (!profile) return null;
     try {
-        return jwtDecode(token);
+        return JSON.parse(profile);
     } catch {
         return null;
     }

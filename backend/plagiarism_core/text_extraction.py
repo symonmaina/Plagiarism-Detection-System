@@ -29,4 +29,8 @@ def extract_text_from_file(file_obj):
     except Exception as e:
         print(f"Error extracting text from {filename}: {e}")
         
+    # Postgres doesn't allow NUL characters
+    if text:
+        text = text.replace('\x00', '')
+        
     return text
