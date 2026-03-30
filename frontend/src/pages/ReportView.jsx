@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, AlertOctagon, Info, FileText, Download } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertOctagon, Info, FileText, Download, X } from 'lucide-react';
 import api from '../api';
 
 const ReportView = () => {
@@ -9,6 +9,8 @@ const ReportView = () => {
   
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedSource, setSelectedSource] = useState(null);
+  const [loadingSource, setLoadingSource] = useState(false);
 
   useEffect(() => {
     fetchReport();
@@ -22,6 +24,22 @@ const ReportView = () => {
       console.error("Failed to fetch report:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSourceClick = async (match) => {
+    setLoadingSource(true);
+    try {
+      const res = await api.get(`submissions/${match.source_doc_id}/`);
+      setSelectedSource({
+        ...match,
+        clean_text: res.data.clean_text
+      });
+    } catch (err) {
+      console.error("Failed to fetch source document:", err);
+      alert("Could not load the source document. It may have been deleted.");
+    } finally {
+      setLoadingSource(false);
     }
   };
 
@@ -42,6 +60,36 @@ const ReportView = () => {
         });
       }
     });
+
+    let highlightedHtml = text;
+    // Sort longer matches first to avoid nested replacement bugs
+    matchedSegments.sort((a, b) => b.text.length - a.text.length);
+    
+    matchedSegments.forEach(seg => {
+      const style = seg.docSim > 30 
+        ? 'background-color: rgba(239, 68, 68, 0.25); color: #fca5a5; padding: 2px; border-radius: 3px;' 
+        : 'background-color: rgba(252, 211, 77, 0.25); color: #fcd34d; padding: 2px; border-radius: 3px;';
+        
+      const escapedText = seg.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(${escapedText})`, 'gi');
+      highlightedHtml = highlightedHtml.replace(regex, `<span style="${style}">$1</span>`);
+    });
+
+    return <div dangerouslySetInnerHTML={{ __html: highlightedHtml.replace(/\n/g, '<br/>') }} />;
+  };
+
+  const renderSourceHighlightedText = (text, match) => {
+    if (!text) return <p>No source text available for analysis.</p>;
+    
+    let matchedSegments = [];
+    if (match.matched_blocks) {
+      match.matched_blocks.forEach(block => {
+        // Here we use source_text instead of matched_text
+        if (block.source_text) {
+          matchedSegments.push({ text: block.source_text, docSim: match.similarity });
+        }
+      });
+    }
 
     let highlightedHtml = text;
     // Sort longer matches first to avoid nested replacement bugs
@@ -130,7 +178,18 @@ const ReportView = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {reportData.matches && reportData.matches.length > 0 ? (
               reportData.matches.map((match, idx) => (
-                <div key={idx} className="glass-panel" style={{ padding: '16px', borderLeft: `3px solid ${match.similarity > 30 ? 'var(--color-danger)' : 'var(--color-warning)'}` }}>
+                <div 
+                  key={idx} 
+                  className="glass-panel" 
+                  onClick={() => handleSourceClick(match)}
+                  style={{ 
+                    padding: '16px', 
+                    borderLeft: `3px solid ${match.similarity > 30 ? 'var(--color-danger)' : 'var(--color-warning)'}`,
+                    cursor: 'pointer',
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.transform = 'translateX(-4px)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'transparent'; }}
+                >
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{ fontWeight: '600', fontSize: '14px', color: match.similarity > 30 ? '#fca5a5' : '#fcd34d' }}>{match.source_doc_title || 'Unknown Document'} (ID: {match.source_doc_id})</span>
                     <span style={{ fontWeight: 'bold', color: match.similarity > 30 ? 'var(--color-danger)' : 'var(--color-warning)' }}>{match.similarity}%</span>
@@ -154,6 +213,30 @@ const ReportView = () => {
 
         </div>
       </div>
+
+      {/* Source Document Viewer Modal */}
+      {selectedSource && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '1000px', height: '100%', maxHeight: '800px', display: 'flex', flexDirection: 'column', textAlign: 'left', background: 'var(--color-bg)' }}>
+            <div style={{ padding: '20px 32px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-surface)' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FileText size={20} color="var(--color-primary)" /> Source Document: {selectedSource.source_doc_title}
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                  Similarity Match: {selectedSource.similarity}%
+                </p>
+              </div>
+              <button onClick={() => setSelectedSource(null)} className="btn-secondary" style={{ padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: '32px', overflowY: 'auto', flex: 1, fontSize: '15px', lineHeight: '1.8', color: '#cbd5e1' }}>
+              {renderSourceHighlightedText(selectedSource.clean_text, selectedSource)}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

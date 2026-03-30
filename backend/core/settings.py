@@ -102,7 +102,7 @@ DATABASES = {
         'NAME': 'plagiarism_db',
         'USER': 'postgres',
         'PASSWORD': 'root',
-        'HOST': 'localhost',
+        'HOST': '127.0.0.1',
         'PORT': '5432',
     }
 }

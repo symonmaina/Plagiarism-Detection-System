@@ -61,6 +61,23 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         # Offload heavy NLP matrix operations to the background queue
         async_task('plagiarism_core.engine.process_and_analyze_document', sub.id)
 
+    def destroy(self, request, *args, **kwargs):
+        from rest_framework.exceptions import PermissionDenied
+        instance = self.get_object()
+        
+        # Security: Only the uploader or a lecturer can delete
+        if request.user.is_authenticated:
+            if instance.uploaded_by != request.user and request.user.role != 'lecturer':
+                raise PermissionDenied("You do not have permission to withdraw this submission.")
+                
+        # Soft Deletion: Mark as withdrawn instead of erasing from DB
+        instance.status = 'withdrawn'
+        instance.save(update_fields=['status'])
+        
+        # Optionally, we can delete the associated SimilarityReport to save space, or keep it.
+        # We will keep it for historical academic integrity review.
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_report(request, report_id):

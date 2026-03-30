@@ -37,11 +37,21 @@ class SimilarityReportSerializer(serializers.ModelSerializer):
 
 class SubmissionSerializer(serializers.ModelSerializer):
     uploaded_by = UserSerializer(read_only=True)
-    report = SimilarityReportSerializer(read_only=True)
+    report = serializers.SerializerMethodField()
 
     class Meta:
         model = Submission
         fields = ['id', 'assignment', 'file', 'uploaded_by', 'uploaded_at', 'status', 'report', 'clean_text']
+
+    def get_report(self, obj):
+        request = self.context.get('request', None)
+        # Only lecturers and admins should see the report data containing grades and scores
+        if request and request.user.is_authenticated and getattr(request.user, 'role', '') == 'student':
+            return None
+        
+        if hasattr(obj, 'report') and obj.report:
+            return SimilarityReportSerializer(obj.report).data
+        return None
 
 class DetailedSimilarityReportSerializer(serializers.ModelSerializer):
     submission = SubmissionSerializer(read_only=True)

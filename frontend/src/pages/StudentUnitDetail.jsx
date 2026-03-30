@@ -86,8 +86,8 @@ const StudentUnitDetail = () => {
       ) : (
         <div style={{ display: 'grid', gap: '24px' }}>
           {assignments.map(a => {
-            // Check if student already submitted to this assignment
-            const mySub = submissions.find(s => s.assignment === a.id);
+            // Check if student already has a valid submission to this assignment
+            const mySub = submissions.find(s => s.assignment === a.id && s.status !== 'withdrawn');
             const isUploading = uploadingAssignmentId === a.id;
             
             return (
@@ -107,20 +107,31 @@ const StudentUnitDetail = () => {
                      <div style={{ textAlign: 'right' }}>
                        {mySub.status === 'scanned' ? (
                          <>
-                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--color-success)', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
-                             <CheckCircle size={16} /> Submitted
+                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', gap: '16px' }}>
+                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--color-success)', fontSize: '14px', fontWeight: 'bold' }}>
+                               <CheckCircle size={16} /> Submitted
+                             </div>
                            </div>
-                           <div style={{ marginBottom: '8px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                           <div style={{ marginBottom: '12px', fontSize: '12px', color: 'var(--color-text-muted)', textAlign: 'right' }}>
                              {mySub.file?.toLowerCase().endsWith('.pdf') ? (
-                               <a href={mySub.file} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-primary)', textDecoration: 'none', marginBottom: '4px' }}><FileText size={12}/> View PDF natively</a>
+                               <a href={mySub.file} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-primary)', textDecoration: 'none', marginBottom: '4px' }}><FileText size={12}/> View PDF natively</a>
                              ) : (
-                               <button onClick={() => setViewingDoc(mySub)} style={{ background: 'none', border: 'none', padding: 0, fontSize: '12px', color: 'var(--color-primary)', textDecoration: 'underline', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}><FileText size={12}/> Read Document in Browser</button>
+                               <button onClick={() => setViewingDoc(mySub)} style={{ background: 'none', border: 'none', padding: 0, fontSize: '12px', color: 'var(--color-primary)', textDecoration: 'underline', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}><FileText size={12}/> Read Document in Browser</button>
                              )}
-                             Uploaded: {new Date(mySub.uploaded_at).toLocaleString()}
+                             <br />Uploaded: {new Date(mySub.uploaded_at).toLocaleString()}
                            </div>
-                           <div>
-                             <button className="btn-secondary" onClick={() => navigate(`/report/${mySub.report?.id}`)}>
-                               View Report
+                           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                             <button 
+                               className="btn-danger" 
+                               onClick={async () => {
+                                 if (window.confirm("Are you sure you want to withdraw this submission and redo the work?")) {
+                                   await api.delete(`submissions/${mySub.id}/`);
+                                   fetchData();
+                                 }
+                               }}
+                               style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 12px', fontSize: '12px', background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}
+                             >
+                               Withdraw Submission
                              </button>
                            </div>
                          </>

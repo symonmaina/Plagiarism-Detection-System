@@ -55,6 +55,7 @@ class Submission(models.Model):
         ('pending', 'Pending Scan'),
         ('scanned', 'Scanned'),
         ('error', 'Error'),
+        ('withdrawn', 'Withdrawn'),
         ('not_implemented', 'Not Implemented'),
     )
     
@@ -76,7 +77,6 @@ class SimilarityReport(models.Model):
     submission = models.OneToOneField(Submission, on_delete=models.CASCADE, related_name='report')
     overall_score = models.FloatField(default=0.0)
     created_at = models.DateTimeField(auto_now_add=True)
-    
     # Stores JSON array of match details: [{"source_doc_id": 1, "similarity": 45.2, "matched_text": "...", "source_text": "..."}]
     matches = models.JSONField(default=list, blank=True)
 
