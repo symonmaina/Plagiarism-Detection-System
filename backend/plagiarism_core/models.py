@@ -8,13 +8,17 @@ class Course(models.Model):
         return self.name
 
 class Program(models.Model):
+    name = models.CharField(max_length=255, blank=True, null=True, help_text="e.g. BSc Computer Science")
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='programs')
     year = models.PositiveIntegerField(help_text="e.g. 1, 2, 3, 4")
+    units = models.ManyToManyField('Unit', related_name='programs', blank=True)
     
     class Meta:
-        unique_together = ('course', 'year')
+        unique_together = ('course', 'name', 'year')
 
     def __str__(self):
+        if self.name:
+            return f"{self.name} - Year {self.year}"
         return f"{self.course.name} - Year {self.year}"
 
 class User(AbstractUser):
@@ -26,6 +30,26 @@ class User(AbstractUser):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
     id_number = models.CharField(max_length=50, unique=True, help_text="Registration Number or Staff ID")
     program = models.ForeignKey(Program, on_delete=models.SET_NULL, null=True, blank=True, related_name='students', help_text="Only applicable for students.")
+    teaching_units = models.ManyToManyField('Unit', related_name='teaching_lecturers', blank=True)
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        if is_new and not self.username:
+            if self.first_name and self.last_name:
+                base_username = f"{self.first_name.strip().lower()}{self.last_name.strip().lower()}".replace(" ", "")
+                username = base_username
+                counter = 1
+                while User.objects.filter(username=username).exists():
+                    username = f"{base_username}{counter}"
+                    counter += 1
+                self.username = username
+            else:
+                self.username = self.id_number.strip().lower() if self.id_number else 'user'
+            
+            if self.id_number:
+                self.set_password(self.id_number.strip().upper())
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"
@@ -33,8 +57,6 @@ class User(AbstractUser):
 class Unit(models.Model):
     name = models.CharField(max_length=255, help_text="e.g. Database Systems")
     code = models.CharField(max_length=20, unique=True, help_text="e.g. COMP101")
-    lecturers = models.ManyToManyField(User, limit_choices_to={'role': 'lecturer'}, related_name='teaching_units', blank=True)
-    programs = models.ManyToManyField(Program, related_name='units', blank=True)
 
     def __str__(self):
         return f"{self.code} - {self.name}"

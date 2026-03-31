@@ -122,3 +122,74 @@ def get_weekly_report(request):
         'submissions': submissions_data
     }
     return Response(data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    """
+    Allows a logged-in user to change their password by confirming their email.
+    """
+    email = request.data.get('email')
+    new_password = request.data.get('newPassword')
+    confirm_password = request.data.get('confirmPassword')
+    
+    if not email or not new_password or not confirm_password:
+        return Response({'error': 'Please provide email, new_password, and confirm_password.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    if new_password != confirm_password:
+        return Response({'error': 'Passwords do not match.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    user = User.objects.filter(email=email).first()
+    if not user:
+        return Response({'error': 'Email not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+    if request.user != user:
+        return Response({'error': 'The provided email does not match your account.'}, status=status.HTTP_403_FORBIDDEN)
+        
+    user.set_password(new_password)
+    user.save()
+    return Response({'message': 'Password changed successfully.'}, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def forgot_password(request):
+    """
+    Allows a user to reset their password to their registration number (id_number) given an email.
+    """
+    email = request.data.get('email')
+    
+    if not email:
+        return Response({'error': 'Please provide an email.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    user = User.objects.filter(email=email).first()
+    if not user:
+        return Response({'error': 'Email not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+    if not user.id_number:
+        return Response({'error': 'User missing registration number. Cannot reset to default password.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    user.set_password(user.id_number.strip().upper())
+    user.save()
+    return Response({'message': 'Password reset to default (registration number) successfully.'}, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([AllowAny]) 
+def get_admin_course_data(request):
+    courses = Course.objects.prefetch_related('programs__units').all()
+    data = []
+    for c in courses:
+        programs_data = []
+        for p in c.programs.all():
+            units_data = [{'id': u.id, 'name': str(u)} for u in p.units.all()]
+            programs_data.append({
+                'id': p.id,
+                'name': str(p),
+                'units': units_data
+            })
+        data.append({
+            'id': c.id,
+            'name': c.name,
+            'programs': programs_data
+        })
+    return Response(data)
+
