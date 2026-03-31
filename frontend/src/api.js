@@ -61,4 +61,32 @@ export const getUserContext = () => {
     }
 };
 
+export const changePassword = async (email, newPassword, confirmPassword) => {
+  try {
+    const response = await api.post('auth/change-password/', {
+      email,
+      newPassword,
+      confirmPassword,
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response && error.response.data && error.response.data.error) {
+        throw new Error(error.response.data.error);
+    }
+    throw new Error('Failed to change password. Please try again.');
+  }
+};
+
+export const forgotPassword = async (email) => {
+  try {
+    const response = await axios.post(`${API_URL}auth/forgot-password/`, { email });
+    return response.data;
+  } catch (error) {
+    if (error.response && error.response.data && error.response.data.error) {
+        throw new Error(error.response.data.error);
+    }
+    throw new Error('Failed to reset password. Please try again.');
+  }
+};
+
 export default api;

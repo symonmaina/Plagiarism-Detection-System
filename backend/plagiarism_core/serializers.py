@@ -19,9 +19,12 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'role', 'id_number', 'program', 'program_details']
 
 class UnitSerializer(serializers.ModelSerializer):
+    programs = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    lecturers = serializers.PrimaryKeyRelatedField(source='teaching_lecturers', many=True, read_only=True)
+    
     class Meta:
         model = Unit
-        fields = '__all__'
+        fields = ['id', 'name', 'code', 'programs', 'lecturers']
 
 class AssignmentSerializer(serializers.ModelSerializer):
     unit_code = serializers.CharField(source='unit.code', read_only=True)
