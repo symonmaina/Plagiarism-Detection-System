@@ -103,9 +103,9 @@ def calculate_similarity(new_text, new_sentences, existing_docs_dict):
             matched_blocks = []
             
             # Sentence-level similarity
-            # OPTIMIZATION: Only run deep sentence highlighting if overall doc similarity > 5%
-            # This skips massive matrix math for documents that only share common English stop words.
-            if new_sentences and source_sentences and similarity_percentage > 5.0:
+            # Sentence-level similarity
+            # Check sentence highlighting if overall doc similarity > 0%
+            if new_sentences and source_sentences and similarity_percentage > 0.0:
                 try:
                     sent_vectorizer = TfidfVectorizer()
                     all_sents = new_sentences + source_sentences

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BarChart2, AlertTriangle, Users } from 'lucide-react';
+import { ArrowLeft, BarChart2, AlertTriangle, Users, Download } from 'lucide-react';
 import api from '../api';
 
 const UnitReportView = () => {
@@ -50,13 +50,18 @@ const UnitReportView = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--color-bg)' }}>
       {/* Header */}
-      <header className="glass-panel" style={{ padding: '24px 40px', display: 'flex', borderBottom: '1px solid var(--color-border)', borderRadius: 0 }}>
+      <header className="glass-panel" style={{ padding: '24px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderBottom: '1px solid var(--color-border)', borderRadius: 0 }}>
         <div>
-          <button onClick={() => navigate(`/lecturer/unit/${unitId}`)} className="btn-secondary" style={{ padding: '8px 16px', marginBottom: '16px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+          <button onClick={() => navigate(`/lecturer/unit/${unitId}`)} className="btn-secondary no-print" style={{ padding: '8px 16px', marginBottom: '16px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
             <ArrowLeft size={16} /> Back to Module
           </button>
           <h1 style={{ fontSize: '28px', margin: 0 }}>{unit?.name} ({unit?.code}) Unit Report</h1>
           <p style={{ margin: 0, color: 'var(--color-text-muted)' }}>Aggregated plagiarism and academic integrity statistics.</p>
+        </div>
+        <div className="no-print">
+          <button onClick={() => window.print()} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Download size={16} /> Export PDF
+          </button>
         </div>
       </header>
 
@@ -126,7 +131,7 @@ const UnitReportView = () => {
                      </div>
                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <div style={{ fontWeight: 'bold', fontSize: '18px', color: s.report.grade === 'D' ? '#fca5a5' : '#fcd34d' }}>{s.report.overall_score}%</div>
-                        <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => navigate(`/report/${s.report.id}`)}>Review</button>
+                        <button className="btn-secondary no-print" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => navigate(`/report/${s.report.id}`)}>Review</button>
                      </div>
                   </div>
                ))}

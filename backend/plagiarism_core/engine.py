@@ -80,7 +80,11 @@ def process_and_analyze_document(submission_id: int):
         
     except Exception as e:
         import traceback
-        with open('c:\\projects\\django-playground\\Plagiarism Detection System\\backend\\crash_log.txt', 'w') as f:
+        import os
+        from django.conf import settings
+        
+        crash_log_path = os.path.join(settings.BASE_DIR, 'crash_log.txt')
+        with open(crash_log_path, 'w') as f:
             f.write(traceback.format_exc())
             
         print(f"Error processing submission {submission_id}: {e}")

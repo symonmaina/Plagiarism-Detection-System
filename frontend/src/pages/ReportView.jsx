@@ -70,7 +70,8 @@ const ReportView = () => {
         ? 'background-color: rgba(239, 68, 68, 0.25); color: #fca5a5; padding: 2px; border-radius: 3px;' 
         : 'background-color: rgba(252, 211, 77, 0.25); color: #fcd34d; padding: 2px; border-radius: 3px;';
         
-      const escapedText = seg.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Escape regex special chars and replace spaces with flexible whitespace matcher
+      const escapedText = seg.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
       const regex = new RegExp(`(${escapedText})`, 'gi');
       highlightedHtml = highlightedHtml.replace(regex, `<span style="${style}">$1</span>`);
     });
@@ -100,7 +101,8 @@ const ReportView = () => {
         ? 'background-color: rgba(239, 68, 68, 0.25); color: #fca5a5; padding: 2px; border-radius: 3px;' 
         : 'background-color: rgba(252, 211, 77, 0.25); color: #fcd34d; padding: 2px; border-radius: 3px;';
         
-      const escapedText = seg.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Escape regex special chars and replace spaces with flexible whitespace matcher
+      const escapedText = seg.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
       const regex = new RegExp(`(${escapedText})`, 'gi');
       highlightedHtml = highlightedHtml.replace(regex, `<span style="${style}">$1</span>`);
     });
@@ -124,17 +126,17 @@ const ReportView = () => {
         </div>
         
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button onClick={() => window.print()} className="btn-secondary no-print" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Download size={16} /> Export PDF
           </button>
         </div>
       </header>
 
       {/* Main Content: Split View */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div className="print-layout print-expand" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         
         {/* Left Pane: Submitted Document */}
-        <div style={{ flex: '1', padding: '32px', overflowY: 'auto', borderRight: '1px solid var(--color-border)' }}>
+        <div className="print-layout print-expand" style={{ flex: '1', padding: '32px', overflowY: 'auto', borderRight: '1px solid var(--color-border)' }}>
           <h2 style={{ fontSize: '18px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FileText size={18} color="var(--color-primary)" /> Submitted Text
           </h2>
@@ -145,7 +147,7 @@ const ReportView = () => {
         </div>
 
         {/* Right Pane: Report Analysis & Sources */}
-        <div style={{ width: '400px', padding: '32px', overflowY: 'auto', background: 'rgba(15, 23, 42, 0.5)' }}>
+        <div className="print-layout print-expand print-avoid-break" style={{ width: '400px', padding: '32px', overflowY: 'auto', background: 'rgba(15, 23, 42, 0.5)' }}>
           
           {/* Circular Progress Score */}
           <div className="glass-card" style={{ padding: '32px 24px', textAlign: 'center', marginBottom: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

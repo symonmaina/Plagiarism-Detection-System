@@ -141,3 +141,30 @@ h1, h2, h3, h4, h5, h6 {
 .text-gradient {
   color: var(--color-primary);
 }
+
+/* Print Styles for PDF Export */
+@media print {
+  body {
+    background: white;
+    min-height: auto;
+  }
+  .no-print, header, button {
+    display: none !important;
+  }
+  .print-expand {
+    overflow: visible !important;
+    height: auto !important;
+  }
+  .print-layout {
+    display: block !important;
+    width: 100% !important;
+  }
+  .print-avoid-break {
+    page-break-inside: avoid;
+  }
+  .glass-panel, .glass-card {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    break-inside: avoid;
+  }
+}
